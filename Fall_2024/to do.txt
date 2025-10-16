@@ -1,4 +1,0 @@
-To Do:
-1. Write R functions lesson => not covered?
-2. flexdashboard to git pages lesson - not covered?
-3. hands on coding challenge to start the day

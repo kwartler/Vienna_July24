@@ -13,6 +13,8 @@ library(caret)
 library(ranger)
 library(DataExplorer)
 library(vtreat)
+library(MLmetrics)
+library(dplyr)
 
 ## Custom functions
 # Fixing percent
@@ -96,14 +98,43 @@ ggplot(trainData, aes(x = int_rate, y = grade, color = as.factor(y))) +
 
 
 #### Modify - end of day 1
-testData$int_rate <- as.numeric(gsub("%","",testData$int_rate))/100
+plan <- designTreatmentsC(dframe = prepData,
+                          varlist = names(prepData)[1:27],
+                          outcomename = 'y',
+                          outcometarget = 1)
+treatedTrain <- prepare(plan, trainData)
+treatedTest <- prepare(plan, testData)
+
 
 #### Model(s) - end of day 2
+fitRanger <- ranger(as.factor(y)~., treatedTrain,
+                    importance = 'impurity',
+                    probability = T)
+sort(importance(fitRanger))
 
 #### Assess - end of day 2
+trainPreds <- predict(fitRanger, treatedTrain)
+testPreds <- predict(fitRanger, treatedTest)
 
-#### Apply - end of day 2
+# Convert prob to class
 
+
+# Conf Matrix
+table(trainPreds$predictions, treatedTrain$y)
+table(testPreds$predictions, treatedTest$y)
+
+# KPI
+Accuracy(y_pred = trainPreds$predictions, y_true = treatedTrain$y)
+Accuracy(y_pred = testPreds$predictions, y_true = treatedTest$y)
+
+
+#### Apply - end of day 2; let's fix the term var
+investmentOpportunities$term <- paste0(investmentOpportunities$term, 
+                                       ' months')
+investmentOpportunities$mths_since_last_major_derog <- as.numeric(investmentOpportunities$mths_since_last_major_derog)
+# annual income
+treatedInvestmentOpp <- prepare(plan, investmentOpportunities)
+investmentPredictions <- predict(fitRanger, treatedInvestmentOpp)
 
 
 # End
